@@ -1,32 +1,33 @@
-# React + TypeScript + Vite
+# 🏛️ Society Welfare & Fund System
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A modern full-stack web application designed to automate member contribution tracking, welfare assistance claims, and financial management for welfare societies.
 
-Currently, two official plugins are available:
+🚀 **Live Demo:** [https://society-management-system-gamma.vercel.app/](https://society-management-system.vercel.app)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Key Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Admin Executive Dashboard:** Real-time metrics for total funds, bank vs cash balance, monthly collections, and active members.
+* **Member Management:** Add, edit, and track society members and their active/inactive status.
+* **Contribution Tracking:** Record monthly payments (LKR 200/month) and keep complete receipt logs.
+* **Welfare Assistance Management:** Process and track welfare fund claims and payouts for eligible relatives.
+* **Bank Statement Auto-Matching:** Upload bank statement CSVs to automatically verify and mark member contributions.
+* **Role-Based Access Control:** Distinct workflows and dashboards for Admins and Members.
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## 🛠️ Tech Stack
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+* **Frontend:** React.js, TypeScript, Tailwind CSS, Vite
+* **Backend:** Node.js, Express.js
+* **Database:** MySQL / Mock Database
+* **Deployment:** Vercel (Frontend)
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## 💻 How to Run Locally
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/mihirimiyurangi85-cmyk/society-management-system.git](https://github.com/mihirimiyurangi85-cmyk/society-management-system.git)
