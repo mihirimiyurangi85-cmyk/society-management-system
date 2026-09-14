@@ -28,7 +28,7 @@ export const LoginPage: React.FC = () => {
 
       if (result.success) {
         showToast('success', 'Welcome Back!', 'Logged in successfully.');
-        if (username.toLowerCase() === 'admin') {
+        if (result.user?.role === 'ADMIN') {
           navigate('/admin/dashboard');
         } else {
           navigate('/member/dashboard');

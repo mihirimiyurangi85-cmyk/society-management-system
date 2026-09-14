@@ -71,9 +71,20 @@ const seedAuthUsers = async () => {
         created_at: '2026-01-01T00:00:00Z',
       },
     );
-    await persistUsers();
+    try {
+      await persistUsers();
+    } catch (error) {
+      console.warn('Initial user persistence unavailable:', error);
+    }
   }
 };
+
+const authReady = seedAuthUsers();
+
+app.use(async (_req, _res, next) => {
+  await authReady;
+  next();
+});
 
 app.post('/api/register', async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
@@ -103,7 +114,12 @@ app.post('/api/register', async (req, res) => {
     created_at: new Date().toISOString(),
   };
   users.push(user);
-  await persistUsers();
+  try {
+    await persistUsers();
+  } catch (error) {
+    // Serverless filesystems can be read-only; the account remains available for this instance.
+    console.warn('User persistence unavailable:', error);
+  }
 
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
@@ -275,8 +291,12 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
 
-seedAuthUsers().then(() => {
+if (process.env.VERCEL !== '1') {
+  authReady.then(() => {
   app.listen(port, () => {
     console.log(`Bank Statement Backend API listening on http://localhost:${port}`);
   });
-});
+  });
+}
+
+export default app;

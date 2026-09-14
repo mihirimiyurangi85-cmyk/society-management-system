@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   member: Member | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>;
   register: (username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updatePassword: (oldPass: string, newPass: string) => { success: boolean; error?: string };
@@ -46,13 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string; token?: string; user?: User };
       if (!response.ok) return { success: false, error: data.error || 'Invalid credentials' };
+      if (!data.token || !data.user) return { success: false, error: 'Authentication response was incomplete.' };
 
       setUser(data.user);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
       localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch {
       return { success: false, error: 'Unable to reach the authentication server.' };
     }
