@@ -39,6 +39,8 @@ npm run dev
 
 The frontend runs at `http://localhost:5173` and the authentication API runs at `http://localhost:5001`. User records are persisted in the local ignored file `server/data/users.json`.
 
+For Vercel, deploy the frontend with the included `vercel.json` and set the `VITE_API_URL` environment variable to the public URL where the Express server is deployed. The Express server must be deployed separately because Vercel is hosting the Vite frontend in this configuration.
+
 Demo accounts: `admin` / `admin123` and `M001` / `member123`.
 
 1. **Clone the repository:**
