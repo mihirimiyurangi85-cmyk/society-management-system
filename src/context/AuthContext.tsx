@@ -18,6 +18,14 @@ const AUTH_STORAGE_KEY = 'sms_auth_user';
 const TOKEN_STORAGE_KEY = 'sms_auth_token';
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5001' : '');
 
+const readApiResponse = async (response: Response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Authentication API returned ${response.status} ${response.statusText}`);
+  }
+  return response.json() as Promise<{ error?: string; token?: string; user?: User }>;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -46,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      const data = (await response.json()) as { error?: string; token?: string; user?: User };
+      const data = await readApiResponse(response);
       if (!response.ok) return { success: false, error: data.error || 'Invalid credentials' };
       if (!data.token || !data.user) return { success: false, error: 'Authentication response was incomplete.' };
 
@@ -66,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       return response.ok ? { success: true } : { success: false, error: data.error || 'Registration failed' };
     } catch {
       return { success: false, error: 'Unable to reach the authentication server.' };
