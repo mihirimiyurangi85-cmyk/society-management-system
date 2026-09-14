@@ -4,11 +4,8 @@ import multer from 'multer';
 import Papa from 'papaparse';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
 
 const app = express();
-const port = process.env.PORT || 5001;
 const jwtSecret = process.env.JWT_SECRET || 'development-only-secret-change-me';
 
 app.use(cors());
@@ -26,34 +23,10 @@ interface AuthUser {
 }
 
 const users: AuthUser[] = [];
-const usersFilePath = path.join(process.cwd(), 'server', 'data', 'users.json');
 
-const persistUsers = async () => {
-  try {
-    await fs.mkdir(path.dirname(usersFilePath), { recursive: true });
-    await fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), 'utf-8');
-  } catch (error) {
-    console.warn('User persistence unavailable (expected on serverless):', error);
-  }
-};
-
-const publicUser = (user: AuthUser) => ({
-  id: user.id,
-  username: user.username,
-  email: user.email,
-  password_hash: '',
-  role: user.role,
-  member_id: user.member_id,
-  full_name: user.full_name,
-  created_at: user.created_at,
-});
-
+// Seed default in-memory users for serverless execution
 const seedAuthUsers = async () => {
-  try {
-    const storedUsers = JSON.parse(await fs.readFile(usersFilePath, 'utf-8')) as AuthUser[];
-    users.push(...storedUsers);
-    return;
-  } catch {
+  if (users.length === 0) {
     const adminHash = await bcrypt.hash('admin123', 10);
     const memberHash = await bcrypt.hash('member123', 10);
 
@@ -78,19 +51,26 @@ const seedAuthUsers = async () => {
         created_at: '2026-01-01T00:00:00Z',
       }
     );
-
-    // Vercel serverless හි read-only filesystem නිසා crash වීම වැළැක්වීමට try/catch භාවිත කර ඇත
-    await persistUsers();
   }
 };
 
-const authReady = seedAuthUsers();
+const publicUser = (user: AuthUser) => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  password_hash: '',
+  role: user.role,
+  member_id: user.member_id,
+  full_name: user.full_name,
+  created_at: user.created_at,
+});
 
 app.use(async (_req, _res, next) => {
-  await authReady;
+  await seedAuthUsers();
   next();
 });
 
+// Auth Routes
 app.post(['/api/register', '/register'], async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
@@ -119,7 +99,6 @@ app.post(['/api/register', '/register'], async (req, res) => {
     created_at: new Date().toISOString(),
   };
   users.push(user);
-  await persistUsers();
 
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
@@ -162,8 +141,8 @@ interface MemberRecord {
   status: string;
 }
 
-// POST /api/bank/upload-statement
-app.post('/api/bank/upload-statement', upload.single('file'), (req: any, res: any) => {
+// Bank Statement Parser Route
+app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single('file'), (req: any, res: any) => {
   try {
     let csvText = '';
 
@@ -284,17 +263,9 @@ app.post('/api/bank/upload-statement', upload.single('file'), (req: any, res: an
   }
 });
 
-// Healthcheck
+// Healthcheck Route
 app.get(['/api/health', '/health'], (_req, res) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
-
-if (process.env.VERCEL !== '1') {
-  authReady.then(() => {
-    app.listen(port, () => {
-      console.log(`Bank Statement Backend API listening on http://localhost:${port}`);
-    });
-  });
-}
 
 export default app;
