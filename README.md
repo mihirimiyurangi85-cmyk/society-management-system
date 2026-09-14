@@ -14,6 +14,7 @@ A modern full-stack web application designed to automate member contribution tra
 * **Welfare Assistance Management:** Process and track welfare fund claims and payouts for eligible relatives.
 * **Bank Statement Auto-Matching:** Upload bank statement CSVs to automatically verify and mark member contributions.
 * **Role-Based Access Control:** Distinct workflows and dashboards for Admins and Members.
+* **User Authentication:** Register with a username, email, and password, then sign in with a bcrypt-hashed password and JWT session token.
 
 ---
 
@@ -27,6 +28,18 @@ A modern full-stack web application designed to automate member contribution tra
 ---
 
 ## 💻 How to Run Locally
+
+Install dependencies, then run the frontend and backend in separate terminals:
+
+```bash
+npm install
+npm run server:dev
+npm run dev
+```
+
+The frontend runs at `http://localhost:5173` and the authentication API runs at `http://localhost:5001`. User records are persisted in the local ignored file `server/data/users.json`.
+
+Demo accounts: `admin` / `admin123` and `M001` / `member123`.
 
 1. **Clone the repository:**
    ```bash

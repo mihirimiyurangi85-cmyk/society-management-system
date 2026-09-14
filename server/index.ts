@@ -2,12 +2,126 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import Papa from 'papaparse';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 const app = express();
 const port = process.env.PORT || 5001;
+const jwtSecret = process.env.JWT_SECRET || 'development-only-secret-change-me';
 
 app.use(cors());
 app.use(express.json());
+
+interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  passwordHash: string;
+  role: 'ADMIN' | 'MEMBER';
+  member_id?: string;
+  full_name: string;
+  created_at: string;
+}
+
+const users: AuthUser[] = [];
+const usersFilePath = path.join(process.cwd(), 'server', 'data', 'users.json');
+
+const persistUsers = async () => {
+  await fs.mkdir(path.dirname(usersFilePath), { recursive: true });
+  await fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), 'utf-8');
+};
+
+const publicUser = (user: AuthUser) => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  password_hash: '',
+  role: user.role,
+  member_id: user.member_id,
+  full_name: user.full_name,
+  created_at: user.created_at,
+});
+
+const seedAuthUsers = async () => {
+  try {
+    const storedUsers = JSON.parse(await fs.readFile(usersFilePath, 'utf-8')) as AuthUser[];
+    users.push(...storedUsers);
+    return;
+  } catch {
+    users.push(
+      {
+        id: 'USR-001',
+        username: 'admin',
+        email: 'admin@society.local',
+        passwordHash: await bcrypt.hash('admin123', 10),
+        role: 'ADMIN',
+        full_name: 'Super Admin (Kamal Perera)',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'USR-002',
+        username: 'M001',
+        email: 'm001@society.local',
+        passwordHash: await bcrypt.hash('member123', 10),
+        role: 'MEMBER',
+        member_id: 'M001',
+        full_name: 'John Silva',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    );
+    await persistUsers();
+  }
+};
+
+app.post('/api/register', async (req, res) => {
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Username, email, and password are required.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ error: 'Please provide a valid email address.' });
+  }
+  if (users.some((user) => user.username.toLowerCase() === username.toLowerCase())) {
+    return res.status(409).json({ error: 'Username is already registered.' });
+  }
+
+  const user: AuthUser = {
+    id: `USR-${String(users.length + 1).padStart(3, '0')}`,
+    username,
+    email,
+    passwordHash: await bcrypt.hash(password, 12),
+    role: 'MEMBER',
+    full_name: username,
+    created_at: new Date().toISOString(),
+  };
+  users.push(user);
+  await persistUsers();
+
+  return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
+});
+
+app.post('/api/login', async (req, res) => {
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const user = users.find((candidate) => candidate.username.toLowerCase() === username.toLowerCase());
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    return res.status(401).json({ error: 'Invalid username or password.' });
+  }
+
+  const token = jwt.sign({ sub: user.id, username: user.username, role: user.role }, jwtSecret, {
+    expiresIn: '1d',
+  });
+  return res.json({ token, user: publicUser(user) });
+});
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -161,6 +275,8 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Bank Statement Backend API listening on http://localhost:${port}`);
+seedAuthUsers().then(() => {
+  app.listen(port, () => {
+    console.log(`Bank Statement Backend API listening on http://localhost:${port}`);
+  });
 });

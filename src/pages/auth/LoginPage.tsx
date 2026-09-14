@@ -22,13 +22,12 @@ export const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      const result = login(username, password);
+    try {
+      const result = await login(username, password);
       setLoading(false);
 
       if (result.success) {
         showToast('success', 'Welcome Back!', 'Logged in successfully.');
-        // Redirect based on role
         if (username.toLowerCase() === 'admin') {
           navigate('/admin/dashboard');
         } else {
@@ -37,7 +36,10 @@ export const LoginPage: React.FC = () => {
       } else {
         showToast('error', 'Authentication Failed', result.error || 'Invalid credentials');
       }
-    }, 400);
+    } catch {
+      setLoading(false);
+      showToast('error', 'Authentication Failed', 'Unable to complete login.');
+    }
   };
 
   const fillDemo = (userStr: string, passStr: string) => {
@@ -116,6 +118,13 @@ export const LoginPage: React.FC = () => {
               Sign In to Account
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-slate-400">
+            New to the portal?{' '}
+            <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+              Create an account
+            </Link>
+          </p>
 
           {/* Quick Demo Credentials */}
           <div className="mt-6 pt-6 border-t border-slate-800">
