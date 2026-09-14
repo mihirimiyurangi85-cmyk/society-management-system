@@ -29,8 +29,12 @@ const users: AuthUser[] = [];
 const usersFilePath = path.join(process.cwd(), 'server', 'data', 'users.json');
 
 const persistUsers = async () => {
-  await fs.mkdir(path.dirname(usersFilePath), { recursive: true });
-  await fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), 'utf-8');
+  try {
+    await fs.mkdir(path.dirname(usersFilePath), { recursive: true });
+    await fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('User persistence unavailable (expected on serverless):', error);
+  }
 };
 
 const publicUser = (user: AuthUser) => ({
@@ -50,12 +54,15 @@ const seedAuthUsers = async () => {
     users.push(...storedUsers);
     return;
   } catch {
+    const adminHash = await bcrypt.hash('admin123', 10);
+    const memberHash = await bcrypt.hash('member123', 10);
+
     users.push(
       {
         id: 'USR-001',
         username: 'admin',
         email: 'admin@society.local',
-        passwordHash: await bcrypt.hash('admin123', 10),
+        passwordHash: adminHash,
         role: 'ADMIN',
         full_name: 'Super Admin (Kamal Perera)',
         created_at: '2026-01-01T00:00:00Z',
@@ -64,18 +71,16 @@ const seedAuthUsers = async () => {
         id: 'USR-002',
         username: 'M001',
         email: 'm001@society.local',
-        passwordHash: await bcrypt.hash('member123', 10),
+        passwordHash: memberHash,
         role: 'MEMBER',
         member_id: 'M001',
         full_name: 'John Silva',
         created_at: '2026-01-01T00:00:00Z',
-      },
+      }
     );
-    try {
-      await persistUsers();
-    } catch (error) {
-      console.warn('Initial user persistence unavailable:', error);
-    }
+
+    // Vercel serverless හි read-only filesystem නිසා crash වීම වැළැක්වීමට try/catch භාවිත කර ඇත
+    await persistUsers();
   }
 };
 
@@ -114,12 +119,7 @@ app.post(['/api/register', '/register'], async (req, res) => {
     created_at: new Date().toISOString(),
   };
   users.push(user);
-  try {
-    await persistUsers();
-  } catch (error) {
-    // Serverless filesystems can be read-only; the account remains available for this instance.
-    console.warn('User persistence unavailable:', error);
-  }
+  await persistUsers();
 
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
@@ -202,7 +202,6 @@ app.post('/api/bank/upload-statement', upload.single('file'), (req: any, res: an
       const rawAmt = row.Amount || row.amount || row['Credit Amount'] || '0';
       const amount = Math.abs(parseFloat(rawAmt.replace(/[^0-9.-]+/g, '')) || 0);
 
-      // Regex matching for Member IDs (e.g. M001, M002, M045, M250)
       const idMatch = descStr.match(/(M\d{3})/i) || refStr.match(/(M\d{3})/i);
       let matchedMember: MemberRecord | undefined = undefined;
 
@@ -211,7 +210,6 @@ app.post('/api/bank/upload-statement', upload.single('file'), (req: any, res: an
         matchedMember = members.find((m) => m.id.toUpperCase() === foundId);
       }
 
-      // Secondary match by member full name if ID not explicitly present in text
       if (!matchedMember) {
         matchedMember = members.find(
           (m) => m.full_name && descStr.toLowerCase().includes(m.full_name.toLowerCase())
@@ -293,9 +291,9 @@ app.get(['/api/health', '/health'], (_req, res) => {
 
 if (process.env.VERCEL !== '1') {
   authReady.then(() => {
-  app.listen(port, () => {
-    console.log(`Bank Statement Backend API listening on http://localhost:${port}`);
-  });
+    app.listen(port, () => {
+      console.log(`Bank Statement Backend API listening on http://localhost:${port}`);
+    });
   });
 }
 
