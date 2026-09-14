@@ -11,6 +11,15 @@ const jwtSecret = process.env.JWT_SECRET || 'development-only-secret-change-me';
 app.use(cors());
 app.use(express.json());
 
+app.use((req, _res, next) => {
+  if (req.url === '/api') {
+    req.url = '/';
+  } else if (req.url.startsWith('/api/')) {
+    req.url = req.url.slice('/api'.length);
+  }
+  next();
+});
+
 interface AuthUser {
   id: string;
   username: string;
