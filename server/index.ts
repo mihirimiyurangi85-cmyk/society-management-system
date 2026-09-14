@@ -86,7 +86,7 @@ app.use(async (_req, _res, next) => {
   next();
 });
 
-app.post('/api/register', async (req, res) => {
+app.post(['/api/register', '/register'], async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
@@ -124,7 +124,7 @@ app.post('/api/register', async (req, res) => {
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post(['/api/login', '/login'], async (req, res) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   const user = users.find((candidate) => candidate.username.toLowerCase() === username.toLowerCase());
@@ -287,7 +287,7 @@ app.post('/api/bank/upload-statement', upload.single('file'), (req: any, res: an
 });
 
 // Healthcheck
-app.get('/api/health', (_req, res) => {
+app.get(['/api/health', '/health'], (_req, res) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
 
