@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "node scripts/dev-all.mjs",
     "server:dev": "tsx server/index.ts",
     "dev:server": "npm run server:dev",
     "build": "tsc -b && vite build",

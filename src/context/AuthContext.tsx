@@ -16,7 +16,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STORAGE_KEY = 'sms_auth_user';
 const TOKEN_STORAGE_KEY = 'sms_auth_token';
-const API_URL = import.meta.env.DEV ? 'http://localhost:5001/api' : '/api';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
+const API_URL = configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:5001/api' : '/api');
 
 const readApiResponse = async (response: Response) => {
   const contentType = response.headers.get('content-type') || '';
