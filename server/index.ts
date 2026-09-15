@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import Papa from 'papaparse';
@@ -13,7 +13,7 @@ const jwtSecret = process.env.JWT_SECRET || 'development-only-secret-change-me';
 app.use(cors());
 app.use(express.json());
 
-app.use((req, _res, next) => {
+app.use((req: Request, _res: Response, next: NextFunction) => {
   if (req.url === '/api') {
     req.url = '/';
   } else if (req.url.startsWith('/api/')) {
@@ -41,7 +41,7 @@ const loadPersistedUsers = () => {
     const persistedUsers = JSON.parse(readFileSync(usersFilePath, 'utf8')) as AuthUser[];
     if (Array.isArray(persistedUsers)) users.push(...persistedUsers);
   } catch {
-    // The demo accounts below keep authentication available when persistence is unavailable.
+    // Demo accounts keep auth available when file persistence is unavailable
   }
 };
 
@@ -49,13 +49,12 @@ const persistUsers = () => {
   try {
     writeFileSync(usersFilePath, JSON.stringify(users, null, 2) + '\n', 'utf8');
   } catch {
-    // Vercel's filesystem is read-only; registration still works for that process lifetime.
+    // Vercel filesystem is read-only
   }
 };
 
 loadPersistedUsers();
 
-// Seed default in-memory users for serverless execution
 const seedAuthUsers = async () => {
   if (users.length === 0) {
     const adminHash = await bcrypt.hash('admin123', 10);
@@ -96,13 +95,13 @@ const publicUser = (user: AuthUser) => ({
   created_at: user.created_at,
 });
 
-app.use(async (_req, _res, next) => {
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   await seedAuthUsers();
   next();
 });
 
 // Auth Routes
-app.post(['/api/register', '/register'], async (req, res) => {
+app.post(['/api/register', '/register'], async (req: Request, res: Response) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
@@ -135,7 +134,7 @@ app.post(['/api/register', '/register'], async (req, res) => {
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
 
-app.post(['/api/login', '/login'], async (req, res) => {
+app.post(['/api/login', '/login'], async (req: Request, res: Response) => {
   const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   const user = users.find((candidate) => candidate.username.toLowerCase() === username.toLowerCase());
@@ -174,7 +173,7 @@ interface MemberRecord {
 }
 
 // Bank Statement Parser Route
-app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single('file'), (req: any, res: any) => {
+app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single('file'), (req: Request & { file?: Express.Multer.File }, res: Response) => {
   try {
     let csvText = '';
 
@@ -186,10 +185,9 @@ app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single
       return res.status(400).json({ error: 'No CSV file or csvText provided in request.' });
     }
 
-    const parseResult = Papa.parse<RawStatementRow>(csvText, {
+    const parseResult: Papa.ParseResult<RawStatementRow> = Papa.parse<RawStatementRow>(csvText, {
       header: true,
       skipEmptyLines: true,
-      trimHeaders: true,
     });
 
     if (parseResult.errors.length > 0 && parseResult.data.length === 0) {
@@ -296,10 +294,11 @@ app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single
 });
 
 // Healthcheck Route
-app.get(['/api/health', '/health'], (_req, res) => {
+app.get(['/api/health', '/health'], (_req: Request, res: Response) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
 
+// Local Development Server Listener
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const port = Number(process.env.PORT) || 5001;
   app.listen(port, () => {
