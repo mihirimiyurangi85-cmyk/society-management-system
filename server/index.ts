@@ -4,6 +4,8 @@ import multer from 'multer';
 import Papa from 'papaparse';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const app = express();
 const jwtSecret = process.env.JWT_SECRET || 'development-only-secret-change-me';
@@ -31,7 +33,27 @@ interface AuthUser {
   created_at: string;
 }
 
+const usersFilePath = fileURLToPath(new URL('./data/users.json', import.meta.url));
 const users: AuthUser[] = [];
+
+const loadPersistedUsers = () => {
+  try {
+    const persistedUsers = JSON.parse(readFileSync(usersFilePath, 'utf8')) as AuthUser[];
+    if (Array.isArray(persistedUsers)) users.push(...persistedUsers);
+  } catch {
+    // The demo accounts below keep authentication available when persistence is unavailable.
+  }
+};
+
+const persistUsers = () => {
+  try {
+    writeFileSync(usersFilePath, JSON.stringify(users, null, 2) + '\n', 'utf8');
+  } catch {
+    // Vercel's filesystem is read-only; registration still works for that process lifetime.
+  }
+};
+
+loadPersistedUsers();
 
 // Seed default in-memory users for serverless execution
 const seedAuthUsers = async () => {
@@ -108,6 +130,7 @@ app.post(['/api/register', '/register'], async (req, res) => {
     created_at: new Date().toISOString(),
   };
   users.push(user);
+  persistUsers();
 
   return res.status(201).json({ message: 'Registration successful.', user: publicUser(user) });
 });
@@ -276,5 +299,12 @@ app.post(['/api/bank/upload-statement', '/bank/upload-statement'], upload.single
 app.get(['/api/health', '/health'], (_req, res) => {
   res.json({ status: 'OK', service: 'Society Welfare Bank Statement Parser API' });
 });
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const port = Number(process.env.PORT) || 5001;
+  app.listen(port, () => {
+    console.log(`Authentication API listening on http://localhost:${port}`);
+  });
+}
 
 export default app;

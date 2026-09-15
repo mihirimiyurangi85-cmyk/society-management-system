@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server:dev": "tsx server/index.ts",
+    "dev:server": "npm run server:dev",
     "build": "tsc -b && vite build",
     "type-check": "tsc -b",
     "lint": "oxlint",
