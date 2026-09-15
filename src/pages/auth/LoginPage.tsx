@@ -28,7 +28,7 @@ export const LoginPage: React.FC = () => {
 
       if (result.success) {
         showToast('success', 'Welcome Back!', 'Logged in successfully.');
-        if (result.user?.role === 'ADMIN') {
+        if (username.toLowerCase() === 'admin') {
           navigate('/admin/dashboard');
         } else {
           navigate('/member/dashboard');
@@ -36,9 +36,9 @@ export const LoginPage: React.FC = () => {
       } else {
         showToast('error', 'Authentication Failed', result.error || 'Invalid credentials');
       }
-    } catch {
+    } catch (err: any) {
       setLoading(false);
-      showToast('error', 'Authentication Failed', 'Unable to complete login.');
+      showToast('error', 'Authentication Error', err.message || 'Login failed.');
     }
   };
 
@@ -119,15 +119,17 @@ export const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            New to the portal?{' '}
-            <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
-              Create an account
-            </Link>
-          </p>
+          <div className="mt-5 text-center">
+            <p className="text-xs text-slate-400">
+              Not a member yet?{' '}
+              <Link to="/register" className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+                Register as a New Member →
+              </Link>
+            </p>
+          </div>
 
           {/* Quick Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-slate-800">
+          <div className="mt-6 pt-5 border-t border-slate-800">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center mb-3">
               ⚡ Quick Demo Credentials
             </p>

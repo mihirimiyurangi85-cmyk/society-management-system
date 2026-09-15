@@ -156,6 +156,64 @@ class MockDatabase {
     return newMember;
   }
 
+  registerMember(data: {
+    full_name: string;
+    nic_number: string;
+    address: string;
+    phone_number: string;
+    whatsapp_number: string;
+    username: string;
+    password_hash: string;
+  }): { member: Member; user: User } {
+    const members = this.getMembers();
+    const nextNum = members.length + 1;
+    const newId = `M${String(nextNum).padStart(3, '0')}`;
+    const username = data.username.trim() || newId;
+
+    // Check if username or NIC already exists
+    const users = this.getUsers();
+    if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
+      throw new Error(`Username or Member ID '${username}' is already taken.`);
+    }
+
+    if (members.some((m) => m.nic_number.toLowerCase() === data.nic_number.toLowerCase())) {
+      throw new Error(`Member with NIC Number '${data.nic_number}' is already registered.`);
+    }
+
+    const newMember: Member = {
+      id: newId,
+      full_name: data.full_name,
+      nic_number: data.nic_number,
+      address: data.address,
+      phone_number: data.phone_number,
+      whatsapp_number: data.whatsapp_number || data.phone_number,
+      join_date: new Date().toISOString().split('T')[0],
+      monthly_contribution: 200,
+      status: 'ACTIVE',
+      username,
+      created_at: new Date().toISOString(),
+    };
+
+    members.unshift(newMember);
+    this.set(STORAGE_KEYS.MEMBERS, members);
+
+    const newUser: User = {
+      id: `USR-${Date.now()}`,
+      username,
+      password_hash: data.password_hash,
+      role: 'MEMBER',
+      member_id: newId,
+      full_name: data.full_name,
+      created_at: new Date().toISOString(),
+    };
+
+    users.push(newUser);
+    this.set(STORAGE_KEYS.USERS, users);
+
+    this.addAuditLog(newUser.id, data.full_name, 'MEMBER_SELF_REGISTERED', 'MEMBER', newId, undefined, JSON.stringify(newMember));
+    return { member: newMember, user: newUser };
+  }
+
   updateMember(id: string, updates: Partial<Member>, actor: { id: string; name: string }): Member | undefined {
     const members = this.getMembers();
     const index = members.findIndex((m) => m.id === id);
