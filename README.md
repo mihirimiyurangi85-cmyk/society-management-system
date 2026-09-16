@@ -2,7 +2,7 @@
 
 A modern full-stack web application designed to automate member contribution tracking, welfare assistance claims, and financial management for welfare societies.
 
-🚀 **Live Demo:** [https://society-management-system.vercel.app/](https://society-management-system.vercel.app/)
+🚀 **Live Demo:** [https://society-management-system-gamma.vercel.app/](https://society-management-system-gamma.vercel.app/)
 
 ---
 
